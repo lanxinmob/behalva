@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ececec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1e1e1e" media="(prefers-color-scheme: dark)">
+<title>个人助手 · 工作台</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="mac-os">
+<button id="nav-backdrop" class="nav-backdrop" aria-label="关闭导航" tabindex="-1"></button>
+<div class="app-shell">
+<aside id="sidebar" class="mac-sidebar">
+<div class="brand"><span class="brand-mark" aria-hidden="true"><i data-lucide="sparkles"></i></span><span class="brand-name">个人助手</span></div>
+<nav id="nav" class="mac-sidebar-nav" aria-label="主导航"></nav>
+<div class="nav-footer"><div id="workspace-status" class="connection-state"><span class="state-dot" aria-hidden="true"></span><span>尚未连接工作区</span></div></div>
+</aside>
+<main class="mac-workspace">
+<header class="mac-toolbar app-header">
+<button id="menu-toggle" class="toolbar-button icon-button" aria-label="打开导航" aria-expanded="false" aria-controls="sidebar"><i data-lucide="menu"></i></button>
+<div class="header-titles"><small id="eyebrow">个人工作区</small><h1 id="heading" class="mac-large-title">工作台</h1></div>
+<div class="header-actions mac-toolbar-actions">
+<div id="page-actions" class="page-actions"></div>
+<div id="toolbar-search-slot" class="toolbar-search-slot"></div>
+<button id="help" class="toolbar-button icon-button" aria-label="使用引导" title="使用引导"><i data-lucide="circle-help"></i></button>
+<button id="refresh" class="toolbar-button icon-button" aria-label="同步" title="同步"><i data-lucide="refresh-cw"></i></button>
+</div>
+</header>
+<div id="notice" class="mac-notice" role="status" aria-live="polite"></div>
+<section id="connection" class="mac-connection-sheet">
+<h2>连接你的工作区</h2>
+<p>在电脑的私人工作区目录打开 owner.token，使用其中的管理令牌登录。手机请使用“连接与授权”中单独签发的设备令牌。</p>
+<label for="token">工作区管理令牌</label>
+<input id="token" type="password" autocomplete="off" placeholder="输入 owner.token 中的内容">
+<button id="connect" class="primary">连接</button>
+</section>
+<div id="content" class="mac-content"></div>
+</main>
+</div>
+<nav id="mobile-tabs" class="mobile-tabs ios-tab-bar" aria-label="快捷导航"></nav>
+<dialog id="editor" class="mac-sheet"><form method="dialog" class="mac-sheet-form">
+<header class="mac-sheet-header"><h2 id="editor-title"></h2></header>
+<div id="editor-fields" class="mac-sheet-body"></div>
+<div class="actions mac-sheet-footer"><button value="cancel" class="secondary">取消</button><button id="editor-save" type="button" class="primary">保存</button></div>
+</form></dialog>
+<script src="/lucide.min.js"></script>
+<script src="/workspace-ui.js"></script>
+<script src="/providers.js"></script>
+<script src="/connections.js"></script>
+<script src="/conversations.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
