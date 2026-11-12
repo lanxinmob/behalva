@@ -8,115 +8,60 @@
   <strong>A self-hosted personal assistant that acts on your behalf — after you approve.</strong>
 </p>
 
-<p align="center">
-  C++ core · Kotlin Android · SQLite · local-first permissions
-</p>
+<p align="center">C++ core · Kotlin Android · SQLite</p>
 
-<p align="center">
-  <a href="#status">Status</a> ·
-  <a href="#what-it-does">What it does</a> ·
-  <a href="#architecture">Architecture</a> ·
-  <a href="#quick-start">Quick start</a> ·
-  <a href="#privacy">Privacy</a> ·
-  <a href="#license">License</a>
-</p>
-
----
-
-Behalva keeps a durable workspace on **your** machine: gather sources, index materials, draft next steps, and run outbound actions only when you confirm the exact payload. The name blends *on behalf* with a two-half mark — like a split tally, each side holds half of the same credential.
-
-> **Prototype.** Runnable today; not a finished v1. Real model providers, phone, QQ, and Gmail still need your own credentials and verification.
-
-## Status
-
-| Area | State |
-| --- | --- |
-| C++ / SQLite core (tasks, authz, budget, approvals) | Working |
-| Web workbench | Working |
-| Android offline queue + pairing | Debug APK builds; real-device checks pending |
-| Model calls (OpenAI-style protocols) | Working against configured endpoints |
-| Gmail / QQ / browser automation | Scaffolded; live account verification pending |
-| Self-update with dual review + enable gate | Designed; update manager not shipped |
+Behalva keeps documents, conversations, tasks and drafts in a workspace on your computer. Its Android client provides offline access and synchronizes over HTTPS. The name blends *on behalf* with a two-half mark, inspired by a split tally.
 
 ## What it does
 
-- **Workbench first** — pending tasks, approvals, and long-term goals on the home surface; chat is for intent, not the only UI.
-- **Honest connection states** — each integration reports *not configured / unverified / verified / error* from the core, not guesses in the browser.
-- **Approvals with a frozen payload** — recipients, body, attachments, and form fields are shown before send; changed content needs a new approval.
-- **No blind retries on side effects** — unknown outcomes stay unknown until verified.
-- **Local index, gated cloud use** — private files stay local until you authorize a path for model context.
-- **Phone as a peer** — Kotlin app with offline drafts and conflict choice; the database is never exposed to the device.
+- Index local materials and keep source versions for retrieval.
+- Chat with a configured model and turn discussions into investigation tasks.
+- Prepare drafts and outbound actions for approval.
+- Cache documents, drafts and pending work on Android, with conflict handling after reconnection.
 
-## Architecture
-
-```text
-┌─────────────────┐     HTTPS      ┌──────────────────────────┐
-│  Kotlin Android │◄──────────────►│  C++ core (authority)    │
-│  offline cache  │                │  SQLite · tasks · budget │
-└─────────────────┘                │  approvals · sync API    │
-                                   └────────────┬─────────────┘
-                                                │ claim / result
-                                   ┌────────────▼─────────────┐
-                                   │  Adapter processes       │
-                                   │  (worker, Gmail, browser │
-                                   │   indexer, …)            │
-                                   └──────────────────────────┘
-```
-
-- **C++ owns** persistence, authorization, task state, model request context, budget, and approvals.
-- **Adapters** may use other languages; they return structured results and never get arbitrary DB write access.
-- **Kotlin** owns Android UI and offline state.
-- Personal profile and credentials live **outside** this repository.
+The project is a runnable prototype. Real model providers, QQ, Gmail and physical-phone workflows still need integration testing. OCR, automatic updates, model routing and instant notifications are not complete.
 
 ## Quick start
 
-Windows with MSYS2 UCRT64 (GCC, SQLite, OpenSSL) is the path currently documented.
+On Windows, install MSYS2 UCRT64 with GCC, SQLite and OpenSSL, and add its toolchain directory to `PATH`. Run from the repository root:
 
 ```powershell
 ./tools/build.ps1
 python -m venv .venv
 ./.venv/Scripts/python -m pip install -r requirements.txt
 ./.venv/Scripts/python -m playwright install chromium
-./.venv/Scripts/python tools/workspace.py init --data <YOUR_PRIVATE_DATA_DIR>
-./tools/start.ps1 -Browser
+$WorkspacePath = 'D:/assistant-data'
+./.venv/Scripts/python tools/workspace.py init --data $WorkspacePath
+./tools/start.ps1 -Data $WorkspacePath -Browser
 ```
 
-Open `https://127.0.0.1:8765`, paste `owner.token` from the data directory, then complete the onboarding guide (workspace → model → materials → chat).
+Open `https://127.0.0.1:8765`, sign in with the workspace's `owner.token`, and configure a model provider and material permissions. Keep the workspace outside the source repository: it contains the database, tokens and browser sessions.
 
-Do **not** commit the data directory. It holds certificates, tokens, browser sessions, and the database.
+Stop with `./tools/stop.ps1 -Data $WorkspacePath`. These scripts run background processes; they do not install a Windows service or enable login startup.
 
-### Tests
+For WSL2, keep the core, database and runtime environment on the Linux filesystem. `tools/wsl_service.py` manages the service. Windows and Linux must not open the same database concurrently.
+
+## Models and phone connection
+
+Add a provider endpoint, model ID and API key in the desktop connection settings. Responses and Chat Completions text interfaces are supported. Credentials are encrypted in the desktop workspace and are not synchronized to the phone.
+
+Use an HTTPS address reachable from the phone, such as Tailscale Serve. Pair a device in the desktop interface and import its connection configuration in the Android app. For a LAN connection, configure the listening address and verify the certificate fingerprint. The phone's `127.0.0.1` refers to the phone itself.
+
+## Data and approvals
+
+Local indexing does not grant permission to send private material to a model. Approve cloud use explicitly. Outbound actions bind approval to their contents and attachments; check receipts before retrying an action with an unknown result.
+
+Offline clients can read cached material, edit drafts and queue work. Remote execution requires the desktop service to be reachable.
+
+## Development
 
 ```powershell
 ./.venv/Scripts/python -m unittest discover -s tests -v
 ./tools/build_android.ps1 -Test
 ```
 
-## Privacy
-
-This public tree is product code only.
-
-| Goes in this repo | Stays private |
-| --- | --- |
-| Core, web, Android, connectors, docs, tests | Profile, admissions notes, real keys |
-| `config/example.json` | `local.json`, OAuth tokens, device certs |
-| Brand marks under `brand/` | Live workspace DB and logs |
-
-Rotate any secret that ever touched a private clone before you treat a public tree as clean.
-
-## Contributing
-
-Issues and pull requests are welcome once the public repo is live. Keep changes generic: no personal admissions data, no real credentials, no silent side-effect retries. Code that changes the running product still needs dual review and an explicit enable step in the self-update design.
+The debug APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`. Automated tests use synthetic materials and simulated services.
 
 ## License
 
-Copyright 2026 Huxianbin / lanxinmob.
-
-Licensed under the [Apache License, Version 2.0](LICENSE). See [NOTICE](NOTICE).
-
-```
-                                 Apache License
-                           Version 2.0, January 2004
-```
-
-The Behalva name and mark are used for this project; trademark registration is separate from the software license.
+Copyright 2026 Huxianbin / lanxinmob. Licensed under [Apache-2.0](LICENSE); see [NOTICE](NOTICE).

@@ -1,6 +1,6 @@
 # Implementation contract
 
-Read docs/requirements.md, docs/architecture.md and docs/acceptance.md before changing their modules. The user approved the design on 2026-10-14.
+Read README.md for the project scope and usage.
 
 - Keep the product generic; private profile and credentials belong outside this repository.
 - C++ owns persistence, authorization, task state, model request context, budget and approvals. Kotlin owns Android UI and offline state. Adapter processes are permitted.
