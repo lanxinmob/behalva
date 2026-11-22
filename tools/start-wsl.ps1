@@ -10,11 +10,14 @@ if($Release -notmatch '^/[A-Za-z0-9_./-]+$' -or $Distro -notmatch '^[A-Za-z0-9_.
     throw 'Use simple Linux release, distro and service names.'
 }
 if($Port -lt 1 -or $Port -gt 65535){throw 'Invalid port'}
+if(-not ('PersonalAssistant.OwnedProcessTree' -as [type])){
+    Add-Type -Path (Join-Path $PSScriptRoot 'OwnedProcessTree.cs')
+}
 $guard=New-Object System.Threading.Mutex($false,('Local\PersonalAssistantWSL-'+$Service))
 $owned=$false
 $bridge=$null
 $keeper=$null
-$bridgeArgs=$null
+$bridgeCommand=$null
 $bridgePython=$null
 $owner=[guid]::NewGuid().ToString('N')
 try {
@@ -27,17 +30,20 @@ try {
         $bridgePython=Join-Path $root '.venv\Scripts\python.exe'
         if(-not (Test-Path -LiteralPath $bridgePython -PathType Leaf)){throw 'Windows browser Python is missing.'}
         foreach($file in @('worker.token','server.pem')){if(-not (Test-Path -LiteralPath (Join-Path $dataPath $file) -PathType Leaf)){throw "Missing browser file: $file"}}
-        $bridgeArgs=@(
-            ('"'+(Join-Path $root 'connectors\browser_worker.py')+'"'),'--data',('"'+$dataPath+'"'),
+        $bridgeCommand=(@(
+            ('"'+$bridgePython+'"'),('"'+(Join-Path $root 'connectors\browser_worker.py')+'"'),'--data',('"'+$dataPath+'"'),
             '--url',"https://127.0.0.1:$Port",'--ca',('"'+(Join-Path $dataPath 'server.pem')+'"')
-        )
-        $bridge=Start-Process -FilePath $bridgePython -ArgumentList $bridgeArgs -WindowStyle Hidden -PassThru
+        ) -join ' ')
+        $bridge=[PersonalAssistant.OwnedProcessTree]::Start($bridgePython,$bridgeCommand)
     }
     $keeper=Start-Process -FilePath 'wsl.exe' -ArgumentList @('-d',$Distro,'--exec',"$Release/.venv/bin/python","$Release/tools/wsl_service.py",'hold','--name',$Service,'--owner',$owner) -WindowStyle Hidden -PassThru
     while(-not $keeper.WaitForExit(3000)){
-        if($bridgeArgs -and (-not $bridge -or $bridge.HasExited)){
+        if($bridgeCommand -and (-not $bridge -or $bridge.HasExited)){
+            # The old tree (venv child, Playwright driver, Chromium) can outlive its
+            # root and keep the browser profile locked; end it before respawning.
+            if($bridge){$bridge.Dispose();$bridge=$null}
             # A fresh browser session invalidates old pending UI commands; no action is replayed.
-            $bridge=Start-Process -FilePath $bridgePython -ArgumentList $bridgeArgs -WindowStyle Hidden -PassThru
+            $bridge=[PersonalAssistant.OwnedProcessTree]::Start($bridgePython,$bridgeCommand)
         }
     }
     if($keeper.ExitCode -ne 0){throw 'WSL service stopped; inspect its journal and workspace logs.'}
@@ -46,8 +52,8 @@ try {
         & wsl.exe -d $Distro --exec "$Release/.venv/bin/python" "$Release/tools/wsl_service.py" stop-owned --name $Service --owner $owner
         if(-not $keeper.WaitForExit(30000)){Stop-Process -Id $keeper.Id -Force}
     }
-    # Stop the adapter process tree too: Windows venv launchers may spawn a child.
-    if($bridge -and -not $bridge.HasExited){& taskkill.exe /PID $bridge.Id /T /F | Out-Null}
+    # Ends only processes inside the adapter's own job, whether or not its root is alive.
+    if($bridge){$bridge.Dispose()}
     if($owned){$guard.ReleaseMutex()}
     $guard.Dispose()
 }
