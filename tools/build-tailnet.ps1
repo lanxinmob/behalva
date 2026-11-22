@@ -1,6 +1,9 @@
 param(
     [string]$Ndk = $env:ANDROID_NDK_HOME,
-    [string]$Go = 'go'
+    [string]$Go = 'go',
+    # Native library root (the folder that holds arm64-v8a). Pass the same
+    # folder to Gradle as -Ptailnet.nativeDir or PA_TAILNET_NATIVE_DIR.
+    [string]$OutputDir
 )
 $ErrorActionPreference = 'Stop'
 if (-not $Ndk -or -not (Test-Path -LiteralPath (Join-Path $Ndk 'source.properties'))) {
@@ -9,7 +12,10 @@ if (-not $Ndk -or -not (Test-Path -LiteralPath (Join-Path $Ndk 'source.propertie
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $compiler = Join-Path $Ndk 'toolchains/llvm/prebuilt/windows-x86_64/bin/clang.exe'
 if (-not (Test-Path -LiteralPath $compiler)) { throw 'This helper currently requires the Windows NDK toolchain.' }
-$output = Join-Path $projectRoot 'android/app/src/main/jniLibs/arm64-v8a/libassistant_tailnet.so'
+if (-not $OutputDir) { $OutputDir = $env:PA_TAILNET_NATIVE_DIR }
+if (-not $OutputDir) { $OutputDir = Join-Path $projectRoot 'android/app/src/main/jniLibs' }
+if (-not [IO.Path]::IsPathRooted($OutputDir)) { throw 'Use an absolute -OutputDir / PA_TAILNET_NATIVE_DIR; Gradle resolves the same folder.' }
+$output = Join-Path $OutputDir 'arm64-v8a/libassistant_tailnet.so'
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $output) | Out-Null
 $names = @('GOOS','GOARCH','CGO_ENABLED','CC','CGO_CFLAGS','CGO_LDFLAGS')
 $previous = @{}

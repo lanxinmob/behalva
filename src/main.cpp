@@ -72,6 +72,10 @@ int main(int argc, char **argv) {
     http.set_payload_max_length(8 * 1024 * 1024);
     http.set_read_timeout(15);
     http.set_write_timeout(30);
+    // An idle keep-alive connection holds one of the four pool threads until
+    // this expires, so keep it short. connectors/client.py stops reusing
+    // connections well before it (REUSE_IDLE_SECONDS).
+    http.set_keep_alive_timeout(5);
     auto send = [](httplib::Response &r, const json &v) {
       r.set_content(v.dump(-1, ' ', false, json::error_handler_t::replace),
                     "application/json; charset=utf-8");
