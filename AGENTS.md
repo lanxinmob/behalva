@@ -2,10 +2,8 @@
 
 Read README.md for the project scope and usage.
 
-- Keep the product generic; private profile and credentials belong outside this repository.
+- Keep the product generic. Personal profiles, real messages and credentials stay outside this repository, including tests, fixtures and docs.
 - C++ owns persistence, authorization, task state, model request context, budget and approvals. Kotlin owns Android UI and offline state. Adapter processes are permitted.
 - Never implement real side effects as automatically retryable tasks. Ambiguous outcomes remain unknown until verified.
-- Every self-code update needs two independent developer-agent reviews and user activation approval. Review exact revisions; do not claim manual/mobile checks passed without evidence.
-- Tests must expose meaningful behavioral defects or validate the real workflow. Explain their purpose; do not write tests merely to increase counts.
-- No public push or release without explicit authorization. Local development and validation are authorized.
-- Do not put personal admissions data into source code, fixtures or public docs.
+- When the assistant changes its own code, the exact revision needs two independent agent reviews and the owner's approval before it is activated. Don't report a manual or phone check as passed unless it was actually run.
+- Each test should catch a real behavioral defect or exercise a real workflow, and say which. Don't add tests just to raise the count.
